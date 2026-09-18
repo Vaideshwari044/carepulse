@@ -13,11 +13,17 @@ export const PatientDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
 
   // Fetch patient metadata
-  const { data: patient, refetch: refetchPatient } = useQuery({
+  const {
+    data: patient,
+    isLoading: isPatientLoading,
+    isError: isPatientError,
+    error: patientError,
+    refetch: refetchPatient,
+  } = useQuery({
     queryKey: ["patient", id],
     queryFn: () => api.get<any>(`/api/v1/patients/${id}`),
     enabled: !!id,
-    refetchInterval: 3000,
+    retry: 1,
   });
 
   // Fetch recent vitals
@@ -25,7 +31,7 @@ export const PatientDetail: React.FC = () => {
     queryKey: ["patient-vitals", id],
     queryFn: () => api.get<any[]>(`/api/v1/patients/${id}/vitals?limit=50`),
     enabled: !!id,
-    refetchInterval: 3000,
+    retry: 1,
   });
 
   // Fetch baseline stats
@@ -33,6 +39,7 @@ export const PatientDetail: React.FC = () => {
     queryKey: ["patient-baseline", id],
     queryFn: () => api.get<any>(`/api/v1/patients/${id}/baseline`),
     enabled: !!id,
+    retry: 1,
   });
 
   // Fetch explanation
@@ -40,7 +47,7 @@ export const PatientDetail: React.FC = () => {
     queryKey: ["patient-explanation", id],
     queryFn: () => api.get<any>(`/api/v1/patients/${id}/risk/explanation`),
     enabled: !!id,
-    refetchInterval: 3000,
+    retry: 1,
   });
 
   // Fetch why-not breakdown
@@ -48,7 +55,7 @@ export const PatientDetail: React.FC = () => {
     queryKey: ["patient-why-not", id],
     queryFn: () => api.get<any>(`/api/v1/patients/${id}/risk/why-not`),
     enabled: !!id,
-    refetchInterval: 3000,
+    retry: 1,
   });
 
   // Fetch patient alerts
@@ -56,7 +63,7 @@ export const PatientDetail: React.FC = () => {
     queryKey: ["patient-alerts", id],
     queryFn: () => api.get<any[]>(`/api/v1/alerts?patient_id=${id}`),
     enabled: !!id,
-    refetchInterval: 3000,
+    retry: 1,
   });
 
   const { status: socketStatus } = useMonitoringSocket(() => {
@@ -65,13 +72,52 @@ export const PatientDetail: React.FC = () => {
     refetchAlerts();
   });
 
-  if (!patient) {
+  if (isPatientLoading) {
     return (
       <AppLayout socketStatus={socketStatus}>
-        <div className="p-8 text-center text-gray-400">Loading patient details...</div>
+        <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
+          <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-mono text-amber-400">Loading patient details ({id})...</span>
+        </div>
       </AppLayout>
     );
   }
+
+  if (isPatientError || !patient) {
+    const is404 = (patientError as any)?.status === 404 || (patientError as any)?.message?.includes("404");
+    return (
+      <AppLayout socketStatus={socketStatus}>
+        <div className="p-12 text-center max-w-lg mx-auto space-y-4">
+          <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+            <AlertCircle className="w-6 h-6 text-amber-400" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-100">
+            {is404 ? "Patient Not Found" : "Unable to Load Patient Details"}
+          </h2>
+          <p className="text-xs text-slate-400">
+            {is404
+              ? `The requested patient identifier "${id}" could not be found in PostgreSQL.`
+              : "Unable to load patient details due to a network or server error. Please try again."}
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <button
+              onClick={() => refetchPatient()}
+              className="px-4 py-2 bg-amber-500 text-slate-950 font-bold text-xs rounded-lg hover:bg-amber-400 transition-colors"
+            >
+              Retry Loading
+            </button>
+            <Link
+              to="/patients"
+              className="px-4 py-2 bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs rounded-lg hover:bg-slate-700 transition-colors"
+            >
+              Back to Patient List
+            </Link>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
 
   const state = patient.current_risk_state || "INSUFFICIENT_DATA";
   const score = patient.current_risk_score !== null && patient.current_risk_score !== undefined

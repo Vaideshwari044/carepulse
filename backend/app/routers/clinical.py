@@ -24,21 +24,28 @@ logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/patients", tags=["patient-data"])
 
 
-async def _get_patient(patient_id: uuid.UUID, db: AsyncSession) -> Patient:
-    result = await db.execute(select(Patient).where(Patient.id == patient_id, Patient.deleted_at.is_(None)))
+async def _get_patient(identifier: str, db: AsyncSession) -> Patient:
+    try:
+        val_uuid = uuid.UUID(str(identifier))
+        query = select(Patient).where(Patient.id == val_uuid, Patient.deleted_at.is_(None))
+    except (ValueError, AttributeError):
+        query = select(Patient).where(Patient.patient_code.ilike(str(identifier).strip()), Patient.deleted_at.is_(None))
+
+    result = await db.execute(query)
     p = result.scalar_one_or_none()
     if not p:
-        raise HTTPException(404, {"error": {"code": "PATIENT_NOT_FOUND", "message": "Patient not found", "details": {}}})
+        raise HTTPException(404, {"error": {"code": "PATIENT_NOT_FOUND", "message": f"Patient '{identifier}' not found", "details": {}}})
     return p
 
 
 @router.get("/{patient_id}/vitals", response_model=list[VitalReadingOut])
 async def get_patient_vitals(
-    patient_id: uuid.UUID,
+    patient_id: str,
     limit: int = Query(100, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
+
     patient = await _get_patient(patient_id, db)
     result = await db.execute(
         select(VitalReading)
@@ -51,7 +58,7 @@ async def get_patient_vitals(
 
 @router.get("/{patient_id}/baseline")
 async def get_patient_baseline(
-    patient_id: uuid.UUID,
+    patient_id: str,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -64,10 +71,10 @@ async def get_patient_baseline(
     )
     baseline = result.scalar_one_or_none()
     if not baseline:
-        return {"status": "collecting", "patient_id": str(patient_id)}
+        return {"status": "collecting", "patient_id": str(patient.id)}
 
     return {
-        "patient_id": str(patient_id),
+        "patient_id": str(patient.id),
         "status": baseline.status.value if hasattr(baseline.status, "value") else baseline.status,
         "sample_count": baseline.sample_count,
         "duration_seconds": baseline.duration_seconds,
@@ -85,7 +92,7 @@ async def get_patient_baseline(
 
 @router.get("/{patient_id}/risk", response_model=RiskPredictionOut)
 async def get_patient_risk(
-    patient_id: uuid.UUID,
+    patient_id: str,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -104,11 +111,12 @@ async def get_patient_risk(
 
 @router.get("/{patient_id}/risk/explanation")
 async def get_risk_explanation(
-    patient_id: uuid.UUID,
+    patient_id: str,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     patient = await _get_patient(patient_id, db)
+
     result = await db.execute(
         select(RiskPrediction)
         .where(RiskPrediction.patient_id == patient.id)
@@ -123,7 +131,7 @@ async def get_risk_explanation(
 
 @router.get("/{patient_id}/risk/why-not")
 async def get_why_not_alert(
-    patient_id: uuid.UUID,
+    patient_id: str,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):

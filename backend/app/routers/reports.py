@@ -7,8 +7,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import desc, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import desc, func, select
 
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -23,9 +22,10 @@ async def get_reports_summary(
     current_user: User = Depends(get_current_user),
 ):
     """Retrieve summary metadata of available report types."""
-    patient_count = await db.scalar(select(Patient.id).select_from(Patient)) or 0
-    alert_count = await db.scalar(select(Alert.id).select_from(Alert)) or 0
-    record_count = await db.scalar(select(DatasetRecord.id).select_from(DatasetRecord)) or 0
+    patient_count = await db.scalar(select(func.count(Patient.id))) or 0
+    alert_count = await db.scalar(select(func.count(Alert.id))) or 0
+    record_count = await db.scalar(select(func.count(DatasetRecord.id))) or 0
+
 
     return {
         "reports_available": [

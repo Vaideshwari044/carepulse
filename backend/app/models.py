@@ -146,6 +146,10 @@ class Patient(Base):
     alerts = relationship("Alert", back_populates="patient", cascade="all, delete-orphan")
     quality_events = relationship("DataQualityEvent", back_populates="patient", cascade="all, delete-orphan")
 
+    __table_args__ = (
+        Index("idx_patients_deleted_code", "deleted_at", "patient_code"),
+    )
+
 
 class VitalReading(Base):
     __tablename__ = "vital_readings"
@@ -163,6 +167,11 @@ class VitalReading(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
 
     patient = relationship("Patient", back_populates="vitals")
+
+    __table_args__ = (
+        Index("idx_vital_readings_pt_recorded", "patient_id", "recorded_at"),
+    )
+
 
     __table_args__ = (
         UniqueConstraint("patient_id", "recorded_at", "source", name="uq_vital_patient_time_source"),

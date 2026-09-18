@@ -10,6 +10,7 @@ export const PatientsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { status: socketStatus } = useMonitoringSocket();
   const [search, setSearch] = useState("");
+  const deferredSearch = React.useDeferredValue(search);
   const [riskFilter, setRiskFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("active");
 
@@ -22,13 +23,15 @@ export const PatientsPage: React.FC = () => {
   const [formError, setFormError] = useState("");
 
   const { data: patientsData, isLoading } = useQuery({
-    queryKey: ["patients-list-page", search, riskFilter, statusFilter],
+    queryKey: ["patients-list-page", deferredSearch, riskFilter, statusFilter],
     queryFn: () => {
       let q = `/api/v1/patients?size=50`;
       if (statusFilter !== "ALL") q += `&monitoring_status=${statusFilter}`;
+      if (deferredSearch.trim()) q += `&search=${encodeURIComponent(deferredSearch.trim())}`;
       return api.get<any>(q);
     },
   });
+
 
   // Create Patient Mutation
   const createPatientMutation = useMutation({

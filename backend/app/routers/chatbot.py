@@ -13,7 +13,8 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models import AuditLog, ChatConversation, ChatMessage, User
+from app.models import AuditLog, ChatConversation, ChatMessage, Patient, User
+
 from app.schemas import (
     ChatConversationOut,
     ChatMessageOut,

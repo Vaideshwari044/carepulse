@@ -20,17 +20,22 @@ logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/patients", tags=["patients"])
 
 
-async def _get_patient_or_404(patient_id: uuid.UUID, db: AsyncSession) -> Patient:
-    result = await db.execute(
-        select(Patient).where(Patient.id == patient_id, Patient.deleted_at.is_(None))
-    )
+async def _get_patient_or_404(identifier: str, db: AsyncSession) -> Patient:
+    try:
+        val_uuid = uuid.UUID(str(identifier))
+        query = select(Patient).where(Patient.id == val_uuid, Patient.deleted_at.is_(None))
+    except (ValueError, AttributeError):
+        query = select(Patient).where(Patient.patient_code.ilike(str(identifier).strip()), Patient.deleted_at.is_(None))
+
+    result = await db.execute(query)
     patient = result.scalar_one_or_none()
     if patient is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"error": {"code": "PATIENT_NOT_FOUND", "message": "Patient not found", "details": {}}},
+            detail={"error": {"code": "PATIENT_NOT_FOUND", "message": f"Patient '{identifier}' not found", "details": {}}},
         )
     return patient
+
 
 
 async def _next_patient_code(db: AsyncSession) -> str:
@@ -68,9 +73,13 @@ async def list_patients(
         except ValueError:
             pass
 
-    count_query = select(func.count()).select_from(query.subquery())
-    total_result = await db.execute(count_query)
-    total = total_result.scalar() or 0
+    if not search and not monitoring_status:
+        total = (await db.scalar(select(func.count(Patient.id)).where(Patient.deleted_at.is_(None)))) or 0
+    else:
+        count_query = select(func.count()).select_from(query.subquery())
+        total_result = await db.execute(count_query)
+        total = total_result.scalar() or 0
+
 
     query = query.order_by(Patient.patient_code).offset((page - 1) * size).limit(size)
     result = await db.execute(query)
@@ -117,7 +126,7 @@ async def create_patient(
 
 @router.get("/{patient_id}", response_model=PatientOut)
 async def get_patient(
-    patient_id: uuid.UUID,
+    patient_id: str,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -126,7 +135,7 @@ async def get_patient(
 
 @router.put("/{patient_id}", response_model=PatientOut)
 async def update_patient(
-    patient_id: uuid.UUID,
+    patient_id: str,
     body: PatientUpdate,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -147,10 +156,11 @@ async def update_patient(
 
 @router.delete("/{patient_id}", status_code=204)
 async def delete_patient(
-    patient_id: uuid.UUID,
+    patient_id: str,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(require_admin),
 ):
     patient = await _get_patient_or_404(patient_id, db)
     patient.deleted_at = datetime.now(UTC)
     await db.commit()
+
