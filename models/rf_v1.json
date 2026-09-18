@@ -1,0 +1,122 @@
+{
+  "version": "rf_v1",
+  "feature_version": "fv1",
+  "algorithm": "RandomForestClassifier",
+  "n_estimators": 300,
+  "max_depth": 12,
+  "min_samples_leaf": 20,
+  "class_weight": "balanced",
+  "random_state": 42,
+  "n_features": 31,
+  "feature_names": [
+    "heart_rate",
+    "spo2",
+    "respiratory_rate",
+    "systolic_bp",
+    "diastolic_bp",
+    "temperature",
+    "hr_baseline",
+    "spo2_baseline",
+    "rr_baseline",
+    "sbp_baseline",
+    "dbp_baseline",
+    "temp_baseline",
+    "hr_dev",
+    "spo2_dev",
+    "rr_dev",
+    "sbp_dev",
+    "dbp_dev",
+    "temp_dev",
+    "hr_z",
+    "spo2_z",
+    "rr_z",
+    "sbp_z",
+    "dbp_z",
+    "temp_z",
+    "heart_rate_trend",
+    "spo2_trend",
+    "respiratory_rate_trend",
+    "abnormal_primary",
+    "multiparam_score",
+    "quality_score",
+    "baseline_ready"
+  ],
+  "classes": [
+    "HIGH",
+    "LOW",
+    "MODERATE"
+  ],
+  "label_description": "prototype engineering labels (simulator-generated, not clinician-annotated)",
+  "trained_at": "2026-09-18T17:39:42.749225+00:00",
+  "train_patients": 42,
+  "val_patients": 14,
+  "test_patients": 14,
+  "metrics": {
+    "accuracy": 0.976,
+    "macro_precision": 0.9348,
+    "macro_recall": 0.9627,
+    "macro_f1": 0.9476,
+    "roc_auc_ovr": 0.9983,
+    "high_recall": 0.9745,
+    "high_fpr": 0.0037,
+    "confusion_matrix": [
+      [
+        2179,
+        0,
+        57
+      ],
+      [
+        0,
+        5331,
+        94
+      ],
+      [
+        23,
+        28,
+        688
+      ]
+    ],
+    "classes": [
+      "HIGH",
+      "LOW",
+      "MODERATE"
+    ],
+    "per_class": {
+      "HIGH": {
+        "precision": 0.9896,
+        "recall": 0.9745,
+        "f1-score": 0.982,
+        "support": 2236.0
+      },
+      "LOW": {
+        "precision": 0.9948,
+        "recall": 0.9827,
+        "f1-score": 0.9887,
+        "support": 5425.0
+      },
+      "MODERATE": {
+        "precision": 0.82,
+        "recall": 0.931,
+        "f1-score": 0.872,
+        "support": 739.0
+      },
+      "macro avg": {
+        "precision": 0.9348,
+        "recall": 0.9627,
+        "f1-score": 0.9476,
+        "support": 8400.0
+      },
+      "weighted avg": {
+        "precision": 0.978,
+        "recall": 0.976,
+        "f1-score": 0.9766,
+        "support": 8400.0
+      }
+    },
+    "n_train": 25200,
+    "n_val": 8400,
+    "n_test": 8400
+  },
+  "safety_note": "Not clinically validated. For prototype demonstration only. Not for patient care.",
+  "data_note": "Trained on synthetic/simulated data only. No real patient data."
+}

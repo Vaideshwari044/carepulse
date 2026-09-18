@@ -1,0 +1,32 @@
+/* CarePulse global styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-gray-950 text-gray-100 font-sans antialiased;
+    font-family: Inter, system-ui, sans-serif;
+  }
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@layer utilities {
+  .bg-raised { @apply bg-slate-900/90; }
+  .border-line { @apply border-slate-800; }
+  .text-muted { @apply text-slate-400; }
+  .text-gold { color: #D4AF37; }
+  .bg-gold { background-color: #D4AF37; }
+  .border-gold { border-color: rgba(212, 175, 55, 0.4); }
+  .text-gold-light { color: #F4E7B2; }
+  .bg-gold-light { background-color: #FAF4DD; }
+  .gold-glow { box-shadow: 0 0 15px rgba(212, 175, 55, 0.25); }
+  .gold-badge {
+    @apply bg-amber-500/10 text-amber-400 border border-amber-500/30 font-semibold rounded-full text-xs px-2.5 py-0.5 inline-flex items-center gap-1;
+  }
+}
